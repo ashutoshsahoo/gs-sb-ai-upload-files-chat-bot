@@ -1,0 +1,82 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: changeme
+      PGDATA: /data/postgres
+    volumes:
+      - postgres_data:/data/postgres
+    configs:
+      - source: init_user_db
+        target: /docker-entrypoint-initdb.d/init-user-db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - postgres
+    restart: unless-stopped
+  pgadmin:
+    links:
+      - postgres:postgres
+    image: dpage/pgadmin4
+    environment:
+      # Disables the main login page (forces Desktop mode)
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      # Disables the master password prompt for saved connections
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+      # Still required by the container initialization script
+      PGADMIN_DEFAULT_EMAIL: pgadmin4@pgadmin.org
+      PGADMIN_DEFAULT_PASSWORD: changeme
+      PGADMIN_LISTEN_PORT: 5050
+      PGADMIN_CONFIG_ENABLE_PSQL: "True"
+    volumes:
+      - pgadmin_data:/root/.pgadmin
+    configs:
+      - source: pgadmin_servers
+        target: /pgadmin4/servers.json
+    ports:
+      - "5050:5050"
+    networks:
+      - postgres
+    restart: unless-stopped
+
+networks:
+  postgres:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+configs:
+  init_user_db:
+    content: |
+      CREATE EXTENSION IF NOT EXISTS vector;
+      CREATE EXTENSION IF NOT EXISTS hstore;
+      CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+      
+      CREATE TABLE IF NOT EXISTS vector_store (
+      id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+      content text,
+      metadata json,
+      embedding vector(768)  -- 1536 is the default embedding dimension
+      );
+      
+      CREATE INDEX ON vector_store USING HNSW (embedding vector_cosine_ops);
+  pgadmin_servers:
+    content: |
+      {
+        "Servers": {
+          "1": {
+            "Name": "postgres-docker",
+            "Group": "Servers",
+            "Host": "postgres",
+            "Port": 5432,
+            "MaintenanceDB": "postgres",
+            "Username": "postgres",
+            "SSLMode": "prefer"
+          }
+        }
+      }
