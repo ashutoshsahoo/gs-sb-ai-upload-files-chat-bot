@@ -5,7 +5,7 @@ import in.ashu.practice.dto.Question;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.session.advisor.SessionAdvisors;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,8 +25,7 @@ public class ChatController {
         log.debug("user={} asked question={}", user.getPrincipal(), question);
         return chatClient.prompt()
                 .user(question.question())
-                .advisors(
-                        advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, user.getPrincipal()))
+                .advisors(SessionAdvisors.session(user.getName()))
                 .call()
                 .entity(Answer.class);
     }

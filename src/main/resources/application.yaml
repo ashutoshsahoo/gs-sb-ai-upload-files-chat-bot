@@ -46,12 +46,13 @@ spring:
         schema-validation: true
         remove-existing-vector-store-table: false
 
-    ollama:
-      base-url: http://localhost:11434
+    openai:
+      base-url: http://localhost:1235/v1
+      api-key: lm-studio
       chat:
-        model: gemma4
+        model: google/gemma-4-e4b
       embedding:
-        model: nomic-embed-text
+        model: text-embedding-embeddinggemma-300m-qat
 
 logging:
   level:
